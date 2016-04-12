@@ -5,13 +5,18 @@ StudDP downloads files from Stud.IP.
 """
 
 import json
+import logging
 import os
 import shutil
+import signal
 import time
 
 import requests
 
+LOG = logging.getLogger(__name__)
+LOG_PATH = os.path.expanduser(os.path.join('~', '.studdp'))
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
+PID_FILE = os.path.expanduser(os.path.join('~', '.studdp', 'studdp.pid'))
 
 class APIWrapper(object):
     """
@@ -37,7 +42,11 @@ class APIWrapper(object):
         """
         Performs a GET request with the authentication from the configuration.
         """
-        return requests.get(self.__url__(route), auth=self.__auth, stream=stream)
+        try:
+            return requests.get(self.__url__(route), auth=self.__auth, stream=stream)
+        except OSError as error:
+            LOG.error(error)
+            return None
 
     def get_courses(self):
         """
@@ -97,15 +106,15 @@ class StudDP(object):
         """
         Initializes the API and the update frequencies.
         """
-        self.last_check = config['last_check']
-        self.interval = config['interval']
-        self.api = APIWrapper(config)
+        self.config = config
+        self.interval = self.config['interval']
+        self.api = APIWrapper(self.config)
 
     def __needs_download(self, document):
         """
         Checks if a download of the document is needed.
         """
-        return int(document['chdate']) > self.last_check or \
+        return int(document['chdate']) > self.config['last_check'] or \
                not os.path.exists(os.path.join(document['path'], document['filename']))
 
     def __call__(self):
@@ -118,40 +127,55 @@ class StudDP(object):
                 for document in documents:
                     if self.__needs_download(document):
                         path = os.path.join(document['path'], document['filename'])
-                        print('Downloading {}...'.format(path))
+                        LOG.info('Downloading {}...'.format(path))
                         os.makedirs(document['path'], exist_ok=True)
                         with open(path, 'wb') as docfile:
                             self.api.download_document(document, docfile)
-                        print('Downloaded {}.'.format(path))
-            self.last_check = time.time()
+                        LOG.info('Downloaded {}.'.format(path))
+            self.config['last_check'] = time.time()
             time.sleep(self.interval)
 
-    def get_interval(self):
-        """
-        Returns the interval.
-        """
-        return self.interval
+def setup_logging():
+    """
+    Sets up the loggin handlers.
+    """
+    os.makedirs(LOG_PATH, exist_ok=True)
+    file_handler_info = logging.FileHandler(os.path.join(LOG_PATH, 'info.log'))
+    file_handler_info.setLevel(logging.INFO)
+    LOG.addHandler(file_handler_info)
+    LOG.setLevel(logging.INFO)
+    LOG.info('Logging initialized.')
 
-    def get_last_check(self):
-        """
-        Returns the last check.
-        """
-        return self.last_check
+def exit_func(*args):
+    """
+    Ensures clean exit by writing the current configuration file and
+    deleting the pid file.
+    """
+    LOG.info('Invoking exit.')
+    with open(CONFIG_FILE, 'w') as wfile:
+        LOG.info('Writing config.')
+        json.dump(CONFIG, wfile)
+    os.unlink(PID_FILE)
+    LOG.info('Exiting.')
+    exit(0)
 
 if __name__ == "__main__":
+    setup_logging()
+
     if not os.path.exists(CONFIG_FILE):
-        print('No {0} found. Please copy default_{0} to {0} and adjust it. Exiting.'
-              .format(CONFIG_FILE))
+        LOG.error('No {0} found. Please copy default_{0} to {0} and adjust it. Exiting.'
+                  .format(CONFIG_FILE))
         exit(1)
 
-    with open(CONFIG_FILE, 'r') as configfile:
-        CONFIG = json.load(configfile)
+    for sig in [signal.SIGINT, signal.SIGTERM]:
+        signal.signal(sig, exit_func)
 
-    STUDDP = StudDP(CONFIG)
-    try:
-        STUDDP()
-    except KeyboardInterrupt:
-        CONFIG['last_check'] = STUDDP.get_last_check()
-        with open(CONFIG_FILE, 'w') as configfile:
-            json.dump(CONFIG, configfile)
+    os.makedirs(os.path.dirname(PID_FILE), exist_ok=True)
+    with open(PID_FILE, 'w') as pid_file:
+        pid_file.write(str(os.getpid()))
+
+    with open(CONFIG_FILE, 'r') as rfile:
+        CONFIG = json.load(rfile)
+
+    StudDP(CONFIG)()
 
