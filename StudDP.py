@@ -44,15 +44,21 @@ class APIWrapper(object):
         """
         try:
             return requests.get(self.__url__(route), auth=self.__auth, stream=stream)
-        except OSError as error:
-            LOG.error(error)
-            return None
+        except (TimeoutError,
+                requests.packages.urllib3.exceptions.NewConnectionError,
+                requests.packages.urllib3.exceptions.MaxRetryError,
+                requests.exceptions.ConnectionError) as error:
+            LOG.error("Error on get %s: %s", route, error)
+            return
 
     def get_courses(self):
         """
         Gets a list of courses.
         """
-        return json.loads(self.__get('/api/courses').text)['courses']
+        try:
+            return json.loads(self.__get('/api/courses').text)['courses']
+        except (ValueError, AttributeError):
+            return []
 
     def __get_course_folders(self, course):
         """
@@ -62,7 +68,7 @@ class APIWrapper(object):
             return json.loads(
                 self.__get('/api/documents/{}/folder'.format(course['course_id'])).text
                 )['folders']
-        except ValueError:
+        except (ValueError, AttributeError):
             return []
 
     def get_documents(self, course):
@@ -76,11 +82,14 @@ class APIWrapper(object):
 
         while folders:
             folder = folders.pop()
-            temp = json.loads(
-                self.__get('/api/documents/{}/folder/{}'
-                           .format(course['course_id'], folder['folder_id'])
-                          ).text
-                )
+            try:
+                path = '/api/documents/{}/folder/{}' \
+                        .format(course['course_id'], folder['folder_id'])
+                temp = json.loads(self.__get(path).text)
+            except (ValueError, AttributeError):
+                LOG.error('Error on loading %s.', path)
+                continue
+
             for key in ['folders', 'documents']:
                 for i in range(len(temp[key])):
                     temp[key][i]['path'] = os.path.join(folder['path'], folder['name'])
@@ -127,11 +136,11 @@ class StudDP(object):
                 for document in documents:
                     if self.__needs_download(document):
                         path = os.path.join(document['path'], document['filename'])
-                        LOG.info('Downloading {}...'.format(path))
+                        LOG.info('Downloading %s...', path)
                         os.makedirs(document['path'], exist_ok=True)
                         with open(path, 'wb') as docfile:
                             self.api.download_document(document, docfile)
-                        LOG.info('Downloaded {}.'.format(path))
+                        LOG.info('Downloaded %s', path)
             self.config['last_check'] = time.time()
             time.sleep(self.interval)
 
@@ -163,8 +172,8 @@ if __name__ == "__main__":
     setup_logging()
 
     if not os.path.exists(CONFIG_FILE):
-        LOG.error('No {0} found. Please copy default_{0} to {0} and adjust it. Exiting.'
-                  .format(CONFIG_FILE))
+        LOG.error('No %0s found. Please copy default_%0s to %0s and adjust it. Exiting.',
+                  *([CONFIG_FILE]*3))
         exit(1)
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
