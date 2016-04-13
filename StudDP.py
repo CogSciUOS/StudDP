@@ -131,7 +131,9 @@ class StudDP(object):
         Starts the main loop and checks periodically for document changes and downloads.
         """
         while True:
+            LOG.info('Checking courses.')
             for course in self.api.get_courses():
+                LOG.info('Course: %s', course['title'])
                 documents = self.api.get_documents(course)
                 for document in documents:
                     if self.__needs_download(document):
@@ -142,6 +144,7 @@ class StudDP(object):
                             self.api.download_document(document, docfile)
                         LOG.info('Downloaded %s', path)
             self.config['last_check'] = time.time()
+            LOG.info('Done checking.')
             time.sleep(self.interval)
 
 def setup_logging():
@@ -151,6 +154,7 @@ def setup_logging():
     os.makedirs(LOG_PATH, exist_ok=True)
     file_handler_info = logging.FileHandler(os.path.join(LOG_PATH, 'info.log'))
     file_handler_info.setLevel(logging.INFO)
+    file_handler_info.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
     LOG.addHandler(file_handler_info)
     LOG.setLevel(logging.INFO)
     LOG.info('Logging initialized.')
