@@ -12,6 +12,7 @@ import signal
 import time
 
 import requests
+from distutils.util import strtobool
 
 LOG = logging.getLogger(__name__)
 LOG_PATH = os.path.expanduser(os.path.join('~', '.studdp'))
@@ -133,19 +134,46 @@ class StudDP(object):
         while True:
             LOG.info('Checking courses.')
             for course in self.api.get_courses():
-                LOG.info('Course: %s', course['title'])
-                documents = self.api.get_documents(course)
-                for document in documents:
-                    if self.__needs_download(document):
-                        path = os.path.join(document['path'], document['filename'])
-                        LOG.info('Downloading %s...', path)
-                        os.makedirs(document['path'], exist_ok=True)
-                        with open(path, 'wb') as docfile:
-                            self.api.download_document(document, docfile)
-                        LOG.info('Downloaded %s', path)
+                title = course['title']
+                LOG.info('Course: %s', title)
+                download = False
+                if self.config['courses_selected'] is True:
+                    download = title in self.config['courses']
+                else:
+                    download = user_yes_no_query('Download files for %s?' % title)
+                    if download: 
+                        self.config['courses'].append(title)
+                        LOG.info('%s chosen for download', title)
+                    else:
+                        LOG.info('%s not chosen for download', title)
+
+                if download:
+                    LOG.info('Downloading files for %s', title)
+                    documents = self.api.get_documents(course)
+                    for document in documents:
+                        if self.__needs_download(document):
+                            path = os.path.join(document['path'], document['filename'])
+                            LOG.info('Downloading %s...', path)
+                            os.makedirs(document['path'], exist_ok=True)
+                            with open(path, 'wb') as docfile:
+                                self.api.download_document(document, docfile)
+                            LOG.info('Downloaded %s', path)
+                else:
+                    LOG.info('Skipping files for %s', title)
+
             self.config['last_check'] = time.time()
+            self.config['courses_selected'] = True
             LOG.info('Done checking.')
             time.sleep(self.interval)
+
+
+def user_yes_no_query(question):
+    print('%s [y/n]\n' % question)
+    while True:
+        try:
+            return strtobool(input().lower())
+        except ValueError:
+            sys.stdout.write('Please respond with \'y\' or \'n\'.\n')
 
 def setup_logging():
     """

@@ -1,3 +1,3 @@
-#/usr/bin/env sh sh
+#!/bin/bash
 kill -2 `cat ~/.studdp/studdp.pid`
 
