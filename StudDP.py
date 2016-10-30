@@ -10,7 +10,7 @@ import os
 import shutil
 import signal
 import time
-
+import sys
 import requests
 from distutils.util import strtobool
 
@@ -159,13 +159,13 @@ class StudDP(object):
                     download = title in self.config['courses']
                 else:
                     download = user_yes_no_query('Download files for %s?' % title)
-                    if download:
+                    if not download:
                         self.config['courses'].append(title)
-                        LOG.info('%s chosen for download', title)
-                    else:
                         LOG.info('%s not chosen for download', title)
+                    else:
+                        LOG.info('%s chosen for download', title)
 
-                if download:
+                if not download:
                     LOG.info('Downloading files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
@@ -186,7 +186,7 @@ class StudDP(object):
 
 
 def user_yes_no_query(question):
-    print('%s [y/n]\n' % question)
+    print('%s [y/n]' % question)
     while True:
         try:
             return strtobool(input().lower())
