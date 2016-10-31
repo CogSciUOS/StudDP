@@ -151,21 +151,23 @@ class StudDP(object):
         """
         while True:
             LOG.info('Checking courses.')
+            exit_on_loop = False
             for course in self.api.get_courses():
                 title = course['title']
                 LOG.info('Course: %s', title)
                 download = False
                 if self.config['courses_selected'] is True:
-                    download = title in self.config['courses']
+                    download = not(title in self.config['skip_courses'])
                 else:
-                    download = user_yes_no_query('Download files for %s?' % title)
-                    if not download:
-                        self.config['courses'].append(title)
+                    skip = not(user_yes_no_query('Download files for %s?' % title))
+                    if skip:
+                        self.config['skip_courses'].append(title)
                         LOG.info('%s not chosen for download', title)
                     else:
                         LOG.info('%s chosen for download', title)
+                    exit_on_loop = True
 
-                if not download:
+                if download:
                     LOG.info('Downloading files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
@@ -178,10 +180,11 @@ class StudDP(object):
                             LOG.info('Downloaded %s', path)
                 else:
                     LOG.info('Skipping files for %s', title)
-
             self.config['last_check'] = time.time()
             self.config['courses_selected'] = True
             LOG.info('Done checking.')
+            if exit_on_loop:
+                exit_func()
             time.sleep(self.interval)
 
 
@@ -192,6 +195,7 @@ def user_yes_no_query(question):
             return strtobool(input().lower())
         except ValueError:
             sys.stdout.write('Please respond with \'y\' or \'n\'.\n')
+
 
 def setup_logging():
     """
@@ -204,6 +208,7 @@ def setup_logging():
     LOG.addHandler(file_handler_info)
     LOG.setLevel(logging.INFO)
     LOG.info('Logging initialized.')
+
 
 def exit_func(*args):
     """
@@ -219,6 +224,7 @@ def exit_func(*args):
     exit(0)
 
 if __name__ == "__main__":
+    import optparse
     setup_logging()
 
     if not os.path.exists(CONFIG_FILE):
@@ -235,6 +241,16 @@ if __name__ == "__main__":
 
     with open(CONFIG_FILE, 'r') as rfile:
         CONFIG = json.load(rfile)
+
+    parser = optparse.OptionParser()
+    parser.add_option("-c", "--config",
+                      action="store_true", dest="regenerate", default=False,
+                      help="regenerate config file")
+    (options, args) = parser.parse_args()
+
+    if options.regenerate:
+        CONFIG["courses_selected"] = False
+        CONFIG["skip_courses"] = []
 
     StudDP(CONFIG)()
 

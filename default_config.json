@@ -5,7 +5,7 @@
     "local_path": "~/studip",
     "interval": 1200,
     "last_check": -1,
-	"courses_selected": false,
-	"courses": []
+    "courses_selected": false,
+    "skip_courses": []
 }
 
