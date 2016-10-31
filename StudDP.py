@@ -130,13 +130,14 @@ class StudDP(object):
     Files are also downloaded if they do not exist locally.
     """
 
-    def __init__(self, config):
+    def __init__(self, config, exit_on_loop):
         """
         Initializes the API and the update frequencies.
         """
         self.config = config
         self.interval = self.config['interval']
         self.api = APIWrapper(self.config)
+        self.exit_on_loop = exit_on_loop
 
     def __needs_download(self, document):
         """
@@ -151,7 +152,6 @@ class StudDP(object):
         """
         while True:
             LOG.info('Checking courses.')
-            exit_on_loop = False
             for course in self.api.get_courses():
                 title = course['title']
                 LOG.info('Course: %s', title)
@@ -165,7 +165,7 @@ class StudDP(object):
                         LOG.info('%s not chosen for download', title)
                     else:
                         LOG.info('%s chosen for download', title)
-                    exit_on_loop = True
+                    self.exit_on_loop = True
 
                 if download:
                     LOG.info('Downloading files for %s', title)
@@ -183,7 +183,7 @@ class StudDP(object):
             self.config['last_check'] = time.time()
             self.config['courses_selected'] = True
             LOG.info('Done checking.')
-            if exit_on_loop:
+            if self.exit_on_loop:
                 exit_func()
             time.sleep(self.interval)
 
@@ -197,7 +197,7 @@ def user_yes_no_query(question):
             sys.stdout.write('Please respond with \'y\' or \'n\'.\n')
 
 
-def setup_logging():
+def setup_logging(log_to_stdout):
     """
     Sets up the loggin handlers.
     """
@@ -206,6 +206,11 @@ def setup_logging():
     file_handler_info.setLevel(logging.INFO)
     file_handler_info.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
     LOG.addHandler(file_handler_info)
+    if log_to_stdout:
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(logging.INFO)
+        ch.setFormatter(logging.Formatter('%(asctime)s %(message)s'))
+        LOG.addHandler(ch)
     LOG.setLevel(logging.INFO)
     LOG.info('Logging initialized.')
 
@@ -225,7 +230,21 @@ def exit_func(*args):
 
 if __name__ == "__main__":
     import optparse
-    setup_logging()
+
+    parser = optparse.OptionParser()
+    parser.add_option("-c", "--config",
+                      action="store_true", dest="regenerate", default=False,
+                      help="regenerate config file")
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="log_to_stdout", default=False,
+                      help="print log to stdout")
+    parser.add_option("-n", "--noloop",
+                      action="store_true", dest="noloop", default=False,
+                      help="exit after one run")
+
+    (options, args) = parser.parse_args()
+
+    setup_logging(options.log_to_stdout)
 
     if not os.path.exists(CONFIG_FILE):
         LOG.error('No %0s found. Please copy default_%0s to %0s and adjust it. Exiting.',
@@ -242,15 +261,9 @@ if __name__ == "__main__":
     with open(CONFIG_FILE, 'r') as rfile:
         CONFIG = json.load(rfile)
 
-    parser = optparse.OptionParser()
-    parser.add_option("-c", "--config",
-                      action="store_true", dest="regenerate", default=False,
-                      help="regenerate config file")
-    (options, args) = parser.parse_args()
-
     if options.regenerate:
         CONFIG["courses_selected"] = False
         CONFIG["skip_courses"] = []
 
-    StudDP(CONFIG)()
+    StudDP(CONFIG,options.noloop)()
 
