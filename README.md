@@ -1,5 +1,5 @@
 # StudDP
-StudDP is a file downloader for [Stud.IP](http://studip.de/). It uses the 
+StudDP is a file downloader for [Stud.IP](http://studip.de/). It uses the
 [Stud.IP: Rest.IP](http://studip.github.io/studip-rest.ip/) plugin to download files
 when they changed or are not existent on the file system.
 
@@ -71,3 +71,6 @@ rm -rf StudDP
 rm -rf ~/.studdp
 ```
 
+## Known Issues
+
+If no semester is specified, courses with the same name are merged.

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3.5
+#!/usr/bin/env python3
 
 """
 StudDP downloads files from Stud.IP.
@@ -52,12 +52,17 @@ class APIWrapper(object):
             LOG.error("Error on get %s: %s", route, error)
             return
 
-    def get_courses(self):
+    def get_courses(self, semester_id=False):
         """
         Gets a list of courses.
+        Either for all, or if specified, for a semester with a specific ID.
         """
         try:
-            return json.loads(self.__get('/api/courses').text)['courses']
+            path = '/api/courses'
+            if semester_id:
+                LOG.info('Getting only courses for semester with ID %s', semester_id)
+                path += '/semester/{}'.format(semester_id)
+            return json.loads(self.__get(path).text)['courses']
         except (ValueError, AttributeError):
             return []
 
@@ -102,8 +107,11 @@ class APIWrapper(object):
         """
         Downloads the document to docfile.
         """
-        shutil.copyfileobj(self.__get('/api/documents/{}/download'.format(document['document_id']),
+        try:
+            shutil.copyfileobj(self.__get('/api/documents/{}/download'.format(document['document_id']),
                                       stream=True).raw, docfile)
+        except AttributeError as attribute_error:
+            LOG.error('Can not download file {}, {}'.format(document['document_id'], attribute_error))
 
 class StudDP(object):
     """
@@ -141,7 +149,7 @@ class StudDP(object):
                     download = title in self.config['courses']
                 else:
                     download = user_yes_no_query('Download files for %s?' % title)
-                    if download: 
+                    if download:
                         self.config['courses'].append(title)
                         LOG.info('%s chosen for download', title)
                     else:
