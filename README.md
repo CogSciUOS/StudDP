@@ -1,5 +1,5 @@
 # StudDP
-StudDP is a file downloader for [Stud.IP](http://studip.de/). It uses the 
+StudDP is a file downloader for [Stud.IP](http://studip.de/). It uses the
 [Stud.IP: Rest.IP](http://studip.github.io/studip-rest.ip/) plugin to download files
 when they changed or are not existent on the file system.
 
@@ -21,7 +21,8 @@ Modify the config.json:
     "base_address": "https://studip.uos.de/plugins.php/restipplugin",
     "local_path": "~/studip",
     "interval": 1200,
-    "last_check": -1
+    "last_check": -1,
+    "semester_id": false
 }
 ```
 
@@ -31,6 +32,7 @@ Modify the config.json:
 * `local_path` is your local folder where files should be downloaded to.
 * `interval` is the checking interval in seconds (so the default is 20 minutes).
 * `last_check` is the last timestamp when checks were performed. Leave this as -1.
+* `semester_id` if `false`, all courses are downloaded. Other valid values are IDs (as you can retrieve them from `/api/semesters`).
 
 ## Run
 
@@ -61,3 +63,6 @@ rm -rf StudDP
 rm -rf ~/.studdp
 ```
 
+## Known Issues
+
+If no semester is specified, courses with the same name are merged.
