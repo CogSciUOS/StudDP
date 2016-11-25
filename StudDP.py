@@ -13,6 +13,7 @@ import time
 import sys
 import requests
 import re
+import optparse
 from distutils.util import strtobool
 
 LOG = logging.getLogger(__name__)
@@ -109,7 +110,8 @@ class APIWrapper(object):
 
             for key in ['folders', 'documents']:
                 for i in range(len(temp[key])):
-                    temp[key][i]['path'] = os.path.join(folder['path'], folder['name'])
+                    temp[key][i]['path'] = os.path.join(folder['path'],
+                                                        folder['name'])
             documents += temp['documents']
             folders += temp['folders']
         return documents
@@ -131,7 +133,7 @@ class StudDP(object):
     Files are also downloaded if they do not exist locally.
     """
 
-    def __init__(self, config, exit_on_loop):
+    def __init__(self, config, exit_on_loop, on_windows, update):
         """
         Initializes the API and the update frequencies.
         """
@@ -139,13 +141,17 @@ class StudDP(object):
         self.interval = self.config['interval']
         self.api = APIWrapper(self.config)
         self.exit_on_loop = exit_on_loop
+        self.on_windows = on_windows
+        self.update = update
 
     def __needs_download(self, document):
         """
         Checks if a download of the document is needed.
         """
-        return int(document['chdate']) > self.config['last_check'] or \
-               not os.path.exists(os.path.join(document['path'], document['filename']))
+        return ((int(document['chdate']) > self.config['last_check']) and \
+               self.update) or not \
+               os.path.exists(os.path.join(document['path'],
+                                           document['filename']))
 
     def __call__(self):
         """
@@ -172,8 +178,9 @@ class StudDP(object):
                     LOG.info('Downloading files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
-                        document["path"] = re.sub(":", "", document["path"]) # salt that shit
-                        document["filename"] = re.sub(":", "", document["filename"]) # this shit too
+                        if self.on_windows:
+                            document["path"] = re.sub(":", "", document["path"])
+                            document["filename"] = re.sub(":", "", document["filename"])
                         if self.__needs_download(document):
                             path = os.path.join(document['path'], document['filename'])
                             LOG.info('Downloading %s...', path)
@@ -231,9 +238,7 @@ def exit_func(*args):
     LOG.info('Exiting.')
     exit(0)
 
-if __name__ == "__main__":
-    import optparse
-
+def parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config",
                       action="store_true", dest="regenerate", default=False,
@@ -244,8 +249,16 @@ if __name__ == "__main__":
     parser.add_option("-n", "--noloop",
                       action="store_true", dest="noloop", default=False,
                       help="exit after one run")
+    parser.add_option("-w", "--windows",
+                      action="store_true", dest="on_windows", default=False,
+                      help="remove characters that are forbidden in windows paths")
+    parser.add_option("-u", "--update",
+                      action="store_true", dest="update", default=False,
+                      help="update files when they are updated on StudIP")
+    return parser.parse_args()
 
-    (options, args) = parser.parse_args()
+if __name__ == "__main__":
+    (options, args) = parse_args()
 
     setup_logging(options.log_to_stdout)
 
@@ -268,5 +281,4 @@ if __name__ == "__main__":
         CONFIG["courses_selected"] = False
         CONFIG["skip_courses"] = []
 
-    StudDP(CONFIG,options.noloop)()
-
+    StudDP(CONFIG, options.noloop, options.on_windows, options.update)()
