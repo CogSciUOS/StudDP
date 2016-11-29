@@ -35,7 +35,7 @@ class Picker:
     aborted = False
 
     window_height = 40
-    window_width = 200
+    window_width = 180
     all_options = []
     length = 0
 

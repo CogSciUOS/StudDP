@@ -171,7 +171,7 @@ class StudDP(object):
                                    options=titles, checked=self.config['selected_courses']).getSelected()
                 if not selection:
                     self.config["courses_selected"] = True
-                    __exit_func()
+                    _exit_func()
                 self.config['selected_courses'] = selection
 
             LOG.info('Checking courses.')
@@ -200,7 +200,7 @@ class StudDP(object):
             self.config['courses_selected'] = True
             LOG.info('Done checking.')
             if self.exit_on_loop:
-                __exit_func()
+                _exit_func()
             time.sleep(self.interval)
 
 def get_password(username, force_update=False):
@@ -230,7 +230,7 @@ def setup_logging(log_to_stdout=False):
     LOG.info('Logging initialized.')
 
 
-def __exit_func(*args):
+def _exit_func(*args):
     """
     Ensures clean exit by writing the current configuration file and
     deleting the pid file.
@@ -243,7 +243,7 @@ def __exit_func(*args):
     LOG.info('Exiting.')
     exit(0)
 
-def __parse_args():
+def _parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config",
                       action="store_true", dest="regenerate", default=False,
@@ -266,7 +266,7 @@ def __parse_args():
     return parser.parse_args()
 
 if __name__ == "__main__":
-    (options, args) = __parse_args()
+    (options, args) = _parse_args()
 
     setup_logging(options.log_to_stdout)
 
@@ -276,7 +276,7 @@ if __name__ == "__main__":
         exit(1)
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        signal.signal(sig, __exit_func)
+        signal.signal(sig, _exit_func)
 
     os.makedirs(os.path.dirname(PID_FILE), exist_ok=True)
     with open(PID_FILE, 'w') as pid_file:
