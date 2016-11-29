@@ -15,6 +15,8 @@ import requests
 import re
 import optparse
 from distutils.util import strtobool
+import keyring
+import getpass
 
 LOG = logging.getLogger(__name__)
 LOG_PATH = os.path.expanduser(os.path.join('~', '.studdp'))
@@ -31,7 +33,7 @@ class APIWrapper(object):
         """
         Initializes the API's auth and base address.
         """
-        self.__auth = (configuration['username'], configuration['password'])
+        self.__auth = (configuration['username'], get_password(configuration["username"]))
         self.__base_address = configuration['base_address']
         self.__local_path = os.path.expanduser(configuration['local_path'])
 
@@ -158,23 +160,25 @@ class StudDP(object):
         Starts the main loop and checks periodically for document changes and downloads.
         """
         while True:
+            courses = self.api.get_courses()
+
+            if not self.config['courses_selected']:
+                LOG.info("Updating course selection")
+                self.config["selected_courses"] = []
+                for course in courses:
+                    title = course['title']
+                    if user_yes_no_query('Download files for %s?' % title):
+                        self.config['selected_courses'].append(title)
+                        LOG.info('%s chosen for download', title)
+                    else:
+                        LOG.info('%s not chosen for download', title)
+                        
             LOG.info('Checking courses.')
-            for course in self.api.get_courses():
+            for course in courses:
                 title = course['title']
                 LOG.info('Course: %s', title)
-                download = False
-                if self.config['courses_selected'] is True:
-                    download = not(title in self.config['skip_courses'])
-                else:
-                    skip = not(user_yes_no_query('Download files for %s?' % title))
-                    if skip:
-                        self.config['skip_courses'].append(title)
-                        LOG.info('%s not chosen for download', title)
-                    else:
-                        LOG.info('%s chosen for download', title)
-                    self.exit_on_loop = True
 
-                if download:
+                if title in self.config['selected_courses']:
                     LOG.info('Downloading files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
@@ -196,6 +200,15 @@ class StudDP(object):
             if self.exit_on_loop:
                 exit_func()
             time.sleep(self.interval)
+
+def get_password(username):
+    LOG.info("Querying for password")
+    password = keyring.get_password("StudDP", username)
+    if not password:
+        password = getpass.getpass("Please enter password for user %s: " % username)
+        LOG.info("Adding new password to keyring")
+        keyring.set_password("StudDP", username, password)
+    return password
 
 
 def user_yes_no_query(question):
@@ -233,7 +246,7 @@ def exit_func(*args):
     LOG.info('Invoking exit.')
     with open(CONFIG_FILE, 'w') as wfile:
         LOG.info('Writing config.')
-        json.dump(CONFIG, wfile)
+        json.dump(CONFIG, wfile, sort_keys=True, indent=4 * ' ')
     os.unlink(PID_FILE)
     LOG.info('Exiting.')
     exit(0)
