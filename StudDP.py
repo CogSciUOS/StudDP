@@ -31,13 +31,13 @@ class APIWrapper(object):
     See studip.github.io/studip-rest.ip/ for details.
     """
 
-    def __init__(self, configuration):
+    def __init__(self, auth, base_address, local_path):
         """
         Initializes the API's auth and base address.
         """
-        self.__auth = (configuration['username'], get_password(configuration["username"]))
-        self.__base_address = configuration['base_address']
-        self.__local_path = os.path.expanduser(configuration['local_path'])
+        self.__auth = auth
+        self.__base_address = base_address
+        self.__local_path = os.path.expanduser(local_path)
 
     def __url__(self, route):
         """
@@ -137,13 +137,13 @@ class StudDP(object):
     Files are also downloaded if they do not exist locally.
     """
 
-    def __init__(self, config, exit_on_loop, on_windows, update):
+    def __init__(self, config, api_helper, exit_on_loop=True, on_windows=True, update=False):
         """
         Initializes the API and the update frequencies.
         """
         self.config = config
         self.interval = self.config['interval']
-        self.api = APIWrapper(self.config)
+        self.api = api_helper
         self.exit_on_loop = exit_on_loop
         self.on_windows = on_windows
         self.update = update
@@ -171,7 +171,7 @@ class StudDP(object):
                                    options=titles, checked=self.config['selected_courses']).getSelected()
                 if not selection:
                     self.config["courses_selected"] = True
-                    exit_func()
+                    __exit_func()
                 self.config['selected_courses'] = selection
 
             LOG.info('Checking courses.')
@@ -200,19 +200,19 @@ class StudDP(object):
             self.config['courses_selected'] = True
             LOG.info('Done checking.')
             if self.exit_on_loop:
-                exit_func()
+                __exit_func()
             time.sleep(self.interval)
 
-def get_password(username):
+def get_password(username, force_update=False):
     LOG.info("Querying for password")
     password = keyring.get_password("StudDP", username)
-    if not password:
+    if not password or force_update:
         password = getpass.getpass("Please enter password for user %s: " % username)
         LOG.info("Adding new password to keyring")
         keyring.set_password("StudDP", username, password)
     return password
 
-def setup_logging(log_to_stdout):
+def setup_logging(log_to_stdout=False):
     """
     Sets up the loggin handlers.
     """
@@ -230,7 +230,7 @@ def setup_logging(log_to_stdout):
     LOG.info('Logging initialized.')
 
 
-def exit_func(*args):
+def __exit_func(*args):
     """
     Ensures clean exit by writing the current configuration file and
     deleting the pid file.
@@ -243,7 +243,7 @@ def exit_func(*args):
     LOG.info('Exiting.')
     exit(0)
 
-def parse_args():
+def __parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config",
                       action="store_true", dest="regenerate", default=False,
@@ -258,12 +258,15 @@ def parse_args():
                       action="store_true", dest="on_windows", default=False,
                       help="remove characters that are forbidden in windows paths")
     parser.add_option("-u", "--update",
-                      action="store_true", dest="update", default=False,
+                      action="store_true", dest="update_courses", default=False,
                       help="update files when they are updated on StudIP")
+    parser.add_option("-p", "--password",
+                      action="store_true", dest="update_password", default=False,
+                      help="force password update")
     return parser.parse_args()
 
 if __name__ == "__main__":
-    (options, args) = parse_args()
+    (options, args) = __parse_args()
 
     setup_logging(options.log_to_stdout)
 
@@ -273,7 +276,7 @@ if __name__ == "__main__":
         exit(1)
 
     for sig in [signal.SIGINT, signal.SIGTERM]:
-        signal.signal(sig, exit_func)
+        signal.signal(sig, __exit_func)
 
     os.makedirs(os.path.dirname(PID_FILE), exist_ok=True)
     with open(PID_FILE, 'w') as pid_file:
@@ -285,4 +288,9 @@ if __name__ == "__main__":
     if options.regenerate:
         CONFIG["courses_selected"] = False
 
-    StudDP(CONFIG, options.noloop, options.on_windows, options.update)()
+    username = CONFIG["username"]
+    password = get_password(username, options.update_password)
+
+    api_helper = APIWrapper((username, password), CONFIG["base_address"], CONFIG["local_path"])
+
+    StudDP(CONFIG, api_helper, options.noloop, options.on_windows, options.update_courses)()
