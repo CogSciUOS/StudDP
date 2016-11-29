@@ -185,7 +185,6 @@ class StudDP(object):
                     for document in documents:
                         if self.on_windows: # Salt Path
                             for char in WIN_INVALID_CHARACTERS:
-                                print(char)
                                 document["path"] = re.sub(char, "", document["path"])
                                 document["filename"] = re.sub(char, "", document["filename"])
                         if self.__needs_download(document):
