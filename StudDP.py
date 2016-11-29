@@ -17,11 +17,13 @@ import optparse
 from distutils.util import strtobool
 import keyring
 import getpass
+from picker import Picker
 
 LOG = logging.getLogger(__name__)
 LOG_PATH = os.path.expanduser(os.path.join('~', '.studdp'))
 CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
 PID_FILE = os.path.expanduser(os.path.join('~', '.studdp', 'studdp.pid'))
+WIN_INVALID_CHARACTERS = [":", "<", ">", "|", "\?", "\*"]
 
 class APIWrapper(object):
     """
@@ -164,15 +166,14 @@ class StudDP(object):
 
             if not self.config['courses_selected']:
                 LOG.info("Updating course selection")
-                self.config["selected_courses"] = []
-                for course in courses:
-                    title = course['title']
-                    if user_yes_no_query('Download files for %s?' % title):
-                        self.config['selected_courses'].append(title)
-                        LOG.info('%s chosen for download', title)
-                    else:
-                        LOG.info('%s not chosen for download', title)
-                        
+                titles = map( lambda x: x["title"], courses)
+                selection = Picker(title="Select courses to download",
+                                   options=titles, checked=self.config['selected_courses']).getSelected()
+                if not selection:
+                    self.config["courses_selected"] = True
+                    exit_func()
+                self.config['selected_courses'] = selection
+
             LOG.info('Checking courses.')
             for course in courses:
                 title = course['title']
@@ -182,9 +183,11 @@ class StudDP(object):
                     LOG.info('Downloading files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
-                        if self.on_windows:
-                            document["path"] = re.sub(":", "", document["path"])
-                            document["filename"] = re.sub(":", "", document["filename"])
+                        if self.on_windows: # Salt Path
+                            for char in WIN_INVALID_CHARACTERS:
+                                print(char)
+                                document["path"] = re.sub(char, "", document["path"])
+                                document["filename"] = re.sub(char, "", document["filename"])
                         if self.__needs_download(document):
                             path = os.path.join(document['path'], document['filename'])
                             LOG.info('Downloading %s...', path)
@@ -209,16 +212,6 @@ def get_password(username):
         LOG.info("Adding new password to keyring")
         keyring.set_password("StudDP", username, password)
     return password
-
-
-def user_yes_no_query(question):
-    print('%s [y/n]' % question)
-    while True:
-        try:
-            return strtobool(input().lower())
-        except ValueError:
-            sys.stdout.write('Please respond with \'y\' or \'n\'.\n')
-
 
 def setup_logging(log_to_stdout):
     """
@@ -255,7 +248,7 @@ def parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config",
                       action="store_true", dest="regenerate", default=False,
-                      help="regenerate config file")
+                      help="change course selection")
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="log_to_stdout", default=False,
                       help="print log to stdout")
@@ -292,6 +285,5 @@ if __name__ == "__main__":
 
     if options.regenerate:
         CONFIG["courses_selected"] = False
-        CONFIG["skip_courses"] = []
 
     StudDP(CONFIG, options.noloop, options.on_windows, options.update)()
