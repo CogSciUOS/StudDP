@@ -85,7 +85,11 @@ class Picker:
             else:
                 line_label = self.c_empty + " "
 
-            self.win.addstr(position + 2, 5, line_label + option["label"])
+            if len(option["label"]) > (self.window_width - 20):
+                reduced = option["label"][:self.window_width - 20] + "..."
+            else:
+                reduced = option["label"]
+            self.win.addstr(position + 2, 5, line_label + reduced)
             position = position + 1
 
         # hint for more content above

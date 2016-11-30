@@ -251,9 +251,9 @@ def _parse_args():
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="log_to_stdout", default=False,
                       help="print log to stdout")
-    parser.add_option("-n", "--noloop",
-                      action="store_true", dest="noloop", default=False,
-                      help="exit after one run")
+    parser.add_option("-d", "--daemonize",
+                      action="store_false", dest="noloop", default=True,
+                      help="start as daemon")
     parser.add_option("-w", "--windows",
                       action="store_true", dest="on_windows", default=False,
                       help="remove characters that are forbidden in windows paths")
