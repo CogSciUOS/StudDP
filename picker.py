@@ -15,6 +15,7 @@
 # cancel returns False
 
 import curses
+import shutil
 from curses import wrapper
 
 class Picker:
@@ -34,8 +35,8 @@ class Picker:
     selcount = 0
     aborted = False
 
-    window_height = 40
-    window_width = 180
+    window_height = shutil.get_terminal_size().lines - 10
+    window_width = shutil.get_terminal_size().columns - 20
     all_options = []
     length = 0
 
