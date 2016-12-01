@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This code is available for use under CC0 (Creative Commons 0 - universal).
 # You can copy, modify, distribute and perform the work, even for commercial
