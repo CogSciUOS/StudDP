@@ -16,6 +16,7 @@
 
 import curses
 import shutil
+import signal
 from curses import wrapper
 
 class Picker:
@@ -44,6 +45,19 @@ class Picker:
         self.stdscr = curses.initscr()
         curses.noecho()
         curses.cbreak()
+        self.win = curses.newwin(
+            5 + self.window_height,
+            self.window_width,
+            2,
+            4
+        )
+
+    def sigwinch_handler(self, n, frame):
+        self.window_height = shutil.get_terminal_size().lines - 10
+        self.window_width = shutil.get_terminal_size().columns - 20
+        curses.endwin()
+        self.stdscr.clear()
+        self.stdscr = curses.initscr()
         self.win = curses.newwin(
             5 + self.window_height,
             self.window_width,
@@ -176,5 +190,7 @@ class Picker:
             self.length = len(self.all_options)
 
         self.curses_start()
+
+        signal.signal(signal.SIGWINCH, self.sigwinch_handler)
         curses.wrapper( self.curses_loop )
         self.curses_stop()
