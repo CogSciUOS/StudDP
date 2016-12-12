@@ -6,21 +6,25 @@ import signal
 import time
 import sys
 import requests
-import re
-import optparse
-from distutils.util import strtobool
-import keyring
-import getpass
-import atexit
-from picker import Picker
 import time
 
-LOG = logging.getLogger(__name__)
-out = logging.StreamHandler(sys.stdout)
-out.setLevel(logging.INFO)
-out.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
-LOG.addHandler(out)
-LOG.setLevel(logging.ERROR)
+def retryUntilCondition(condition):
+  def decorate(function):
+    def f(*args, **kwargs):
+      timeout = time.time() + 30
+      while True:
+        result = function(*args, **kwargs)
+        if condition(result):
+          return result
+        elif time.time() > timeout:
+          raise Exception("Unable to connect.")
+          return
+        time.sleep(0.2)
+    return f
+  return decorate
+
+def responseIs200(response):
+  return response.status_code == 200
 
 class APIWrapper(object):
     """
@@ -36,50 +40,36 @@ class APIWrapper(object):
         self._base_address = base_address
         self.local_path = os.path.expanduser(local_path)
 
-    def _url(self, route):
+    def url(self, route):
         """
         Creates an URL from the configuration and the route.
         """
         return "%s%s" % (self._base_address, route)
 
-    def _get(self, route, stream=False):
+
+    @retryUntilCondition(responseIs200)
+    def get(self, route, stream=False):
         """
         Performs a GET request with the authentication from the configuration.
         Will raise errors that have to be handled by the user.
         """
-        try:
-            return requests.get(self._url(route), auth=self._auth, stream=False)
-        except (TimeoutError,
-                requests.packages.urllib3.exceptions.NewConnectionError,
-                requests.packages.urllib3.exceptions.MaxRetryError,
-                requests.exceptions.ConnectionError) as error:
-            LOG.error("Error on get %s: %s", route, error)
-            return
+        return requests.get(self.url(route), auth=self._auth, stream=False)
+
 
     def get_courses(self):
         """
         Gets a list of courses.
-        Return an empty list on errors.
         """
-        while True:
-            try:
-                return json.loads(self._get('/api/courses').text)["courses"]
-            except (ValueError, AttributeError, TimeoutError):
-                LOG.error("Getting courses failed. Will retry")
+        return json.loads(self.get('/api/courses').text)["courses"]
+
 
     def get_course_folders(self, course):
         """
         Gets a list of document folders for a given course.
-        Returns an empty list on errors.
         """
-        while True:
-            try:
-                return json.loads(
-                    self._get('/api/documents/%s/folder' % course['course_id']).text
-                    )['folders']
-            except (ValueError, AttributeError, TimeoutError):
-                LOG.error("Getting course folders for %s failed. Will retry" % course["title"])
-                LOG.info("StudIP is such quality content.")
+        return json.loads(self.get('/api/documents/%s/folder' \
+                                    % course['course_id']).text)['folders']
+
 
     def get_documents(self, course):
         """
@@ -92,15 +82,13 @@ class APIWrapper(object):
 
         while folders:
             folder = folders.pop()
-            while(True):
-                try:
-                    path = '/api/documents/%s/folder/%s' \
-                            % (course['course_id'], folder['folder_id'])
-                    response = self._get(path)
-                    temp = json.loads(response.text)
-                    break
-                except (ValueError, AttributeError):
-                    LOG.error('Error on loading %s. Will retry.' % path)
+            try:
+                path = '/api/documents/%s/folder/%s' \
+                        % (course['course_id'], folder['folder_id'])
+                temp = json.loads(self.get(path).text)
+            except (ValueError, AttributeError):
+                raise Exception('Error on loading %s.' % path)
+                continue
 
             for key in ['folders', 'documents']:
                 for i in range(len(temp[key])):
@@ -110,8 +98,9 @@ class APIWrapper(object):
             folders += temp['folders']
         return documents
 
+
     def download_document(self, document, docfile):
         """
         Downloads the document to docfile.
         """
-        shutil.copyfileobj(self._get('/api/documents/%s/download' % document['document_id'], stream=True).raw, docfile)
+        shutil.copyfileobj(self.get('/api/documents/%s/download' % document['document_id'], stream=True).raw, docfile)
