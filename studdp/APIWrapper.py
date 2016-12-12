@@ -32,9 +32,7 @@ class APIWrapper(object):
     See studip.github.io/studip-rest.ip/ for details.
     """
 
-    def __init__(self, auth=("mschuwalow", "whiteglint01"),
-                 base_address="https://studip.uos.de/plugins.php/restipplugin",
-                 local_path="/tmp"):
+    def __init__(self, auth, base_address, local_path):
 
         self._auth = auth
         self._base_address = base_address

@@ -13,6 +13,10 @@ cd StudDP
 cp default_config.json config.json
 pip install -r requirements.txt
 ```
+or install via pip:
+```sh
+pip install StudDP
+```
 
 Modify the config.json:
 ```json
@@ -40,13 +44,13 @@ Modify the config.json:
 When running for the first time, use:
 
 ```sh
-./StudDP.py
+StudDP.py
 ```
 
 To get information about options, use:
 
 ```sh
-./StudDP.py -h
+StudDP.py -h
 
     Usage: StudDP.py [options]
 
@@ -73,13 +77,13 @@ You can later use the -p and -c options to reconfigure your password and courses
 To run it as a daemon, use:
 
 ```sh
-./StudDP.py -d&
+StudDP.py -d
 ```
 
 To stop it the daemon, use:
 
 ```sh
-./stop.sh
+stopDP
 ```
 
 ## Other information

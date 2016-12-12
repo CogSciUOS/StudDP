@@ -18,14 +18,16 @@ from distutils.util import strtobool
 import keyring
 import getpass
 import atexit
-from picker import Picker
-from APIWrapper import APIWrapper
+from .picker import Picker
+from .APIWrapper import APIWrapper
+from . import CONFIG
+from . import CONFIG_FILE
 
 LOG = logging.getLogger(__name__)
 LOG_PATH = os.path.expanduser(os.path.join('~', '.studdp'))
-CONFIG_FILE = os.path.join(os.path.dirname(__file__), 'config.json')
 PID_FILE = os.path.expanduser(os.path.join('~', '.studdp', 'studdp.pid'))
 WIN_INVALID_CHARACTERS = [":", "<", ">", "|", "\?", "\*"]
+
 
 class StudDP(object):
     """
@@ -34,7 +36,12 @@ class StudDP(object):
     Files are also downloaded if they do not exist locally.
     """
 
-    def __init__(self, config, api_helper, daemonize=False, on_windows=False, update=False):
+    def __init__(self,
+                 config,
+                 api_helper,
+                 daemonize=False,
+                 on_windows=False,
+                 update=False):
         """
         Initializes the API and the update frequencies.
         """
@@ -49,23 +56,26 @@ class StudDP(object):
         """
         Checks if a download of the document is needed.
         """
-        return ((int(document['chdate']) > self.config['last_check']) and \
-               self.update) or not \
-               os.path.exists(os.path.join(document['path'],
-                                           document['filename']))
+        return ((int(document['chdate']) > self.config['last_check']) and
+                self.update) or not \
+            os.path.exists(os.path.join(document['path'],
+                                        document['filename']))
 
     def __call__(self):
         """
-        Starts the main loop and checks periodically for document changes and downloads.
+        Starts the main loop and checks
+        periodically for document changes and downloads.
         """
         while True:
             courses = self.api.get_courses()
 
             if not self.config['courses_selected']:
                 LOG.info("Updating course selection")
-                titles = map( lambda x: x["title"], courses)
-                selection = Picker(title="Select courses to download",
-                                   options=titles, checked=self.config['selected_courses']).getSelected()
+                titles = map(lambda x: x["title"], courses)
+                selection = Picker(
+                    title="Select courses to download",
+                    options=titles,
+                    checked=self.config['selected_courses']).getSelected()
                 if not selection:
                     self.config["courses_selected"] = True
                     return
@@ -80,12 +90,15 @@ class StudDP(object):
                     LOG.info('Checking files for %s', title)
                     documents = self.api.get_documents(course)
                     for document in documents:
-                        if self.on_windows: # Salt Path
+                        if self.on_windows:  # Salt Path
                             for char in WIN_INVALID_CHARACTERS:
-                                document["path"] = re.sub(char, "", document["path"])
-                                document["filename"] = re.sub(char, "", document["filename"])
+                                document["path"] = re.sub(
+                                    char, "", document["path"])
+                                document["filename"] = re.sub(
+                                    char, "", document["filename"])
                         if self._needs_download(document):
-                            path = os.path.join(document['path'], document['filename'])
+                            path = os.path.join(
+                                document['path'], document['filename'])
                             LOG.info('Downloading %s...', path)
                             os.makedirs(document['path'], exist_ok=True)
                             with open(path, 'wb') as docfile:
@@ -100,6 +113,7 @@ class StudDP(object):
                 return
             time.sleep(self.interval)
 
+
 def _setup_logging(log_to_stdout=False):
     """
     Sets up the logging handlers.
@@ -107,28 +121,38 @@ def _setup_logging(log_to_stdout=False):
     os.makedirs(LOG_PATH, exist_ok=True)
     file_handler_info = logging.FileHandler(os.path.join(LOG_PATH, 'info.log'))
     file_handler_info.setLevel(logging.DEBUG)
-    file_handler_info.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    file_handler_info.setFormatter(logging.Formatter(
+        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
     LOG.addHandler(file_handler_info)
     if log_to_stdout:
         out = logging.StreamHandler(sys.stdout)
         out.setLevel(logging.INFO)
-        out.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+        out.setFormatter(logging.Formatter(
+            '%(name)s - %(levelname)s - %(message)s'))
         LOG.addHandler(out)
     err = logging.StreamHandler(sys.stderr)
     err.setLevel(logging.ERROR)
-    err.setFormatter(logging.Formatter('%(name)s - %(levelname)s - %(message)s'))
+    err.setFormatter(logging.Formatter(
+        '%(name)s - %(levelname)s - %(message)s'))
     LOG.addHandler(err)
     LOG.setLevel(logging.DEBUG)
     LOG.info('Logging initialized.')
 
+
 def _get_password(username, force_update=False):
+    if username == "":
+        print("No username provided. "
+              "Please configure ~/.config/studdp/config.json first")
+        exit()
     LOG.info("Querying for password")
     password = keyring.get_password("StudDP", username)
     if not password or force_update:
-        password = getpass.getpass("Please enter password for user %s: " % username)
+        password = getpass.getpass(
+            "Please enter password for user %s: " % username)
         LOG.info("Adding new password to keyring")
         keyring.set_password("StudDP", username, password)
     return password
+
 
 def _exit_func():
     """
@@ -142,6 +166,7 @@ def _exit_func():
     os.unlink(PID_FILE)
     LOG.info('Exiting.')
 
+
 def _parse_args():
     parser = optparse.OptionParser()
     parser.add_option("-c", "--config",
@@ -152,7 +177,7 @@ def _parse_args():
                       help="print log to stdout")
     parser.add_option("-d", "--daemonize",
                       action="store_true", dest="daemonize", default=False,
-                      help="start as daemon")
+                      help="start as daemon. Use stopDP to end thread.")
     parser.add_option("-w", "--windows",
                       action="store_true", dest="on_windows", default=False,
                       help="remove characters that are forbidden in windows paths")
@@ -164,33 +189,29 @@ def _parse_args():
                       help="force password update")
     return parser.parse_args()
 
-if __name__ == "__main__":
-    (options, args) = _parse_args()
 
+def main():
+    (options, args) = _parse_args()
     _setup_logging(options.log_to_stdout)
 
-    if not os.path.exists(CONFIG_FILE):
-        LOG.error('No %0s found. Please copy default_%0s to %0s and adjust it. Exiting.',
-                  *([CONFIG_FILE]*3))
-        exit(1)
+    username = CONFIG["username"]
+    password = _get_password(username, options.update_password)
 
     os.makedirs(os.path.dirname(PID_FILE), exist_ok=True)
     with open(PID_FILE, 'w') as pid_file:
         pid_file.write(str(os.getpid()))
-
-    with open(CONFIG_FILE, 'r') as rfile:
-        CONFIG = json.load(rfile)
 
     atexit.register(_exit_func)
 
     if options.regenerate:
         CONFIG["courses_selected"] = False
 
-    username = CONFIG["username"]
-    password = _get_password(username, options.update_password)
 
     api_helper = APIWrapper((username, password), CONFIG["base_address"],
                             CONFIG["local_path"])
 
     StudDP(CONFIG, api_helper, options.daemonize, options.on_windows,
            options.update_courses)()
+
+if __name__ == "__main__":
+    main()
