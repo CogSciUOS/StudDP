@@ -85,14 +85,24 @@ class APIWrapper(object):
         for i, folder in enumerate(folders):
             folders[i]['path'] = os.path.join(self.__local_path, course['title'])
 
+        import traceback
         while folders:
             folder = folders.pop()
+            path = '/api/documents/{}/folder/{}' \
+                    .format(course['course_id'], folder['folder_id'])
+
+            count = 0
             try:
-                path = '/api/documents/{}/folder/{}' \
-                        .format(course['course_id'], folder['folder_id'])
-                temp = json.loads(self.__get(path).text)
-            except (ValueError, AttributeError):
-                LOG.error('Error on loading %s.', path)
+                txt = ''
+                while not txt and count < 10:
+                    txt = self.__get(path).text
+                    if 'HTTP/1.1 401 Unauthorized' == txt:
+                        txt = ''
+                        time.sleep(0.5)
+                        count += 1
+                temp = json.loads(txt)
+            except (ValueError, AttributeError) as e:
+                LOG.error('Error on loading %s. %s', path, e)
                 continue
 
             for key in ['folders', 'documents']:
