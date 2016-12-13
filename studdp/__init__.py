@@ -19,9 +19,5 @@ if not os.path.exists(CONFIG_FILE):
     os.makedirs(os.path.dirname(CONFIG_FILE), exist_ok=True)
     with open(CONFIG_FILE, "w") as f:
         json.dump(DEFAULT_CONFIG, f, sort_keys=True, indent=4 * ' ')
-    print("Created default configuration file at"
-          " %s. Please configure it." % CONFIG_FILE)
-    exit(1)
-
 with open(CONFIG_FILE, 'r') as rfile:
     CONFIG = json.load(rfile)
