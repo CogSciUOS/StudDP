@@ -19,7 +19,7 @@ def retryUntilCondition(condition):
         elif time.time() > timeout:
           raise Exception("Unable to connect.")
           return
-        time.sleep(0.2)
+        time.sleep(0.5)
     return f
   return decorate
 
@@ -51,7 +51,7 @@ class APIWrapper(object):
         Performs a GET request with the authentication from the configuration.
         Will raise errors that have to be handled by the user.
         """
-        return requests.get(self.url(route), auth=self._auth, stream=False)
+        return requests.get(self.url(route), auth=self._auth, stream=stream)
 
 
     def get_courses(self):
