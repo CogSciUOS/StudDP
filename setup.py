@@ -5,7 +5,7 @@ home = expanduser("~")
 
 setup(
     name='StudDP',
-    version='1.1.4',
+    version='1.1.5',
     author='Maxim Schuwalow',
     author_email='mschuwalow@uos.de',
     packages=['studdp'],
@@ -20,7 +20,6 @@ setup(
         "SecretStorage >= 2.3.1",
         "six >= 1.10.0"
     ],
-    data_files=[(join(home, ".config/studdp"), ["studdp/config.json"])],
     url='https://github.com/MSchuwalow/StudDP.git',
     license='MIT',
     description='StudIP file downloader in python',
