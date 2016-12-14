@@ -76,8 +76,8 @@ class StudDP(object):
                     title="Select courses to download",
                     options=titles,
                     checked=self.config['selected_courses']).getSelected()
+                self.config["courses_selected"] = True
                 if not selection:
-                    self.config["courses_selected"] = True
                     return
                 self.config['selected_courses'] = selection
 
@@ -100,14 +100,14 @@ class StudDP(object):
                             path = os.path.join(
                                 document['path'], document['filename'])
                             LOG.info('Downloading %s...', path)
-                            os.makedirs(document['path'], exist_ok=True)
-                            with open(path, 'wb') as docfile:
-                                self.api.download_document(document, docfile)
-                            LOG.debug('Saved %s', path)
+                            try:
+                                self.api.download_document(document, path)
+                                LOG.debug('Saved %s', path)
+                            except:
+                                LOG.error("Error downloading %s" % path)
                 else:
                     LOG.debug('Skipping files for %s', title)
             self.config['last_check'] = time.time()
-            self.config['courses_selected'] = True
             LOG.info('Done checking.')
             if not self.daemonize:
                 return

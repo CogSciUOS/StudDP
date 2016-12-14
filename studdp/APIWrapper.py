@@ -11,7 +11,7 @@ import time
 def retryUntilCondition(condition):
   def decorate(function):
     def f(*args, **kwargs):
-      timeout = time.time() + 30
+      timeout = time.time() + 180
       while True:
         result = function(*args, **kwargs)
         if condition(result):
@@ -19,6 +19,8 @@ def retryUntilCondition(condition):
         elif time.time() > timeout:
           raise Exception("Unable to connect.")
           return
+        elif "User may not access file" in result.text:
+          raise Exception("Unable to access location.")
         time.sleep(0.5)
     return f
   return decorate
@@ -80,6 +82,8 @@ class APIWrapper(object):
 
         while folders:
             folder = folders.pop()
+            if folder["permissions"]["readable"] == False:
+                continue
             try:
                 path = '/api/documents/%s/folder/%s' \
                         % (course['course_id'], folder['folder_id'])
@@ -97,8 +101,14 @@ class APIWrapper(object):
         return documents
 
 
-    def download_document(self, document, docfile):
+    def download_document(self, document, path):
         """
         Downloads the document to docfile.
         """
-        shutil.copyfileobj(self.get('/api/documents/%s/download' % document['document_id'], stream=True).raw, docfile)
+        try:
+            file = self.get('/api/documents/%s/download' % document['document_id'], stream=True)
+            os.makedirs(document['path'], exist_ok=True)
+            with open(path, 'wb') as docfile:
+                shutil.copyfileobj(path.raw, docfile)
+        except:
+            raise("Error while downloading to %s" % path)
