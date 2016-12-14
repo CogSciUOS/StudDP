@@ -7,18 +7,27 @@ when they changed or are not existent on the file system.
 
 To set it up, do the following:
 
-```sh
-git clone https://github.com/MSchuwalow/StudDP
-cd StudDP
-cp default_config.json config.json
-pip install -r requirements.txt
-```
-or install via pip:
+Install via pip:
 ```sh
 pip install StudDP
 ```
 
-Modify the config.json:
+######  or alternatively:
+
+```sh
+git clone https://github.com/MSchuwalow/StudDP
+cd StudDP
+pip install -r requirements.txt
+```
+
+Note:
+If you install manually you will have to run the included scripts as:
+```sh
+python -m studdp.StudDP
+python -m studdp.stopDP
+```
+
+#### Modify the config.json:
 ```json
 {
     "username": "",
@@ -65,8 +74,9 @@ StudDP.py -h
 ```
 
 When running it for the first time, it should prompt you for your StudIP password. It will then be stored in your login keyring. You therefore have to have
-a keyring installed.\n
-You will then see a ncurses interface which allows you to select the courses to download.
+a keyring installed.
+
+You will then see a ncurses interface which allows you to select the courses to download:
 
 ![](https://cdn.rawgit.com/MSchuwalow/StudDP/develop/Screenshots/Curses.png)
 
