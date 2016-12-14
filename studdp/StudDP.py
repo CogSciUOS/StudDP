@@ -67,7 +67,10 @@ class StudDP(object):
         periodically for document changes and downloads.
         """
         while True:
-            courses = self.api.get_courses()
+            try:
+                courses = self.api.get_courses()
+            except Exception:
+                LOG.exception("Getting courselist failed. Stacktrace:")
 
             if not self.config['courses_selected']:
                 LOG.info("Updating course selection")
@@ -88,7 +91,12 @@ class StudDP(object):
 
                 if title in self.config['selected_courses']:
                     LOG.info('Checking files for %s', title)
-                    documents = self.api.get_documents(course)
+                    try:
+                        documents = self.api.get_documents(course)
+                    except Exception:
+                        LOG.exception("Getting course %s failed. Stacktrace:" \
+                                      % course["title"])
+                        continue
                     for document in documents:
                         if self.on_windows:  # Salt Path
                             for char in WIN_INVALID_CHARACTERS:
@@ -103,8 +111,8 @@ class StudDP(object):
                             try:
                                 self.api.download_document(document, path)
                                 LOG.debug('Saved %s', path)
-                            except:
-                                LOG.error("Error downloading %s" % path)
+                            except Exception:
+                                LOG.exception("Downloading to %s failed. Stacktrace:" % path)
                 else:
                     LOG.debug('Skipping files for %s', title)
             self.config['last_check'] = time.time()
