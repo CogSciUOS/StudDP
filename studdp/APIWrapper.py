@@ -109,6 +109,6 @@ class APIWrapper(object):
             file = self.get('/api/documents/%s/download' % document['document_id'], stream=True)
             os.makedirs(document['path'], exist_ok=True)
             with open(path, 'wb') as docfile:
-                shutil.copyfileobj(path.raw, docfile)
+                shutil.copyfileobj(file.raw, docfile)
         except:
-            raise("Error while downloading to %s" % path)
+            raise Exception("Error while downloading to %s" % path)
