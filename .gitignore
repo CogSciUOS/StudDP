@@ -61,7 +61,9 @@ target/
 #Ipython Notebook
 .ipynb_checkpoints
 config.json
+*.zsh
 .venv
 
 #PyCharm
 .idea/
+
