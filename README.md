@@ -13,10 +13,10 @@ Install via pip:
 pip install StudDP
 ```
 
-######  or alternatively:
+or alternatively:
 
 ```sh
-git clone https://github.com/MSchuwalow/StudDP
+git clone https://github.com/shoeffner/StudDP
 cd StudDP
 pip install -r requirements.txt
 ```
@@ -28,7 +28,9 @@ python -m studdp.StudDP
 python -m studdp.stopDP
 ```
 
-#### Modify the config.json:
+
+### Modify the config.json:
+
 ```json
 {
     "username": "",
@@ -48,6 +50,7 @@ python -m studdp.stopDP
 * `last_check` is the last timestamp when checks were performed. This is set automatically.
 * `courses_selected` tells the program if you have chosen your courses. This is set automatically.
 * `courses` is your list of courses to download. This is set automatically.
+
 
 ## Run
 
@@ -79,9 +82,10 @@ a keyring installed.
 
 You will then see a ncurses interface which allows you to select the courses to download:
 
-![](https://cdn.rawgit.com/MSchuwalow/StudDP/develop/Screenshots/Curses.png)
+![](https://cdn.rawgit.com/shoeffner/StudDP/develop/screenshots/courses.png)
 
 You can later use the -p and -c options to reconfigure your password and courses respectively.
+
 
 ## Running as a daemon
 
@@ -96,6 +100,7 @@ To stop it the daemon, use:
 ```sh
 stopDP
 ```
+
 
 ## Other information
 
