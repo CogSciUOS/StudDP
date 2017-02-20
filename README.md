@@ -3,6 +3,7 @@ StudDP is a file downloader for [Stud.IP](http://studip.de/). It uses the
 [Stud.IP: Rest.IP](http://studip.github.io/studip-rest.ip/) plugin to download files
 when they changed or are not existent on the file system.
 
+
 ## Setup
 
 To set it up, do the following:
@@ -110,3 +111,4 @@ To uninstall use:
 rm -rf StudDP
 rm -rf ~/.studdp
 ```
+
