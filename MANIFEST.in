@@ -1,6 +1,5 @@
-include README.md
+include README.rst
 include LICENSE.txt
-
-recursive-include studdp/*.json
-
-
+include setup.cfg
+include setup.py
+recursive-include studdp *.py

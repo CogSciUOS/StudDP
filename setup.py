@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
+
 from setuptools import setup
-from os.path import expanduser, join
-home = expanduser("~")
 
 setup(
     name='StudDP',
-    version='1.1.93',
-    author='Maxim Schuwalow',
-    author_email='mschuwalow@uos.de',
+    version='1.1.94',
+    author='Sebastian Höffner',
+    author_email='shoeffner@uos.de',
+    maintainer='Maxim Schuwalow',
+    maintainer_email='mschuwalow@uos.de',
     packages=['studdp'],
     install_requires=[
         "cffi >= 1.9.1",
@@ -22,16 +23,16 @@ setup(
         "python-daemon",
         "pidfile"
     ],
-    url='https://github.com/MSchuwalow/StudDP.git',
+    url='https://github.com/shoeffner/StudDP.git',
     license='MIT',
     description='StudIP file downloader in python',
-    long_description=open('README.md').read(),
+    long_description=open('README.rst').read(),
     keywords="StudIP Downloader Osnabrueck UOS utility",
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "StudDP = studdp.StudDP:main",
-            "stopDP = studdp.stopDP:stop",
+            "studdp = studdp.StudDP:main",
+            "stopdp = studdp.stopDP:stop",
         ],
     },
 )
