@@ -10,8 +10,5 @@ DEFAULT_CONFIG = {
     "selected_courses": []
 }
 
-
 CONFIG_FILE = os.path.expanduser(
     os.path.join("~", ".config", "studdp", 'config.json'))
-
-

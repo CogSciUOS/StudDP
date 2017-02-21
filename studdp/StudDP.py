@@ -6,15 +6,18 @@ StudDP downloads files from Stud.IP.
 
 import json
 import logging
-import time
-import sys
-import re
 import optparse
+import os
+import re
+import sys
+import time
+
 from pidfile import PidFile
-import keyring
-import getpass
 import daemon
-from . import *
+import getpass
+import keyring
+
+from . import DEFAULT_CONFIG, CONFIG_FILE
 from .picker import Picker
 from .APIWrapper import APIWrapper
 
@@ -63,7 +66,7 @@ class StudDP:
             os.path.exists(os.path.join(document['path'],
                                         document['filename']))
 
-    def __call__(self):
+    def __call__(self):  # FIXME: # noqa c901 high complexity
         """
         Starts the main loop and checks
         periodically for document changes and downloads.
@@ -84,7 +87,7 @@ class StudDP:
                     try:
                         documents = self.api.get_documents(course)
                     except Exception:
-                        LOG.exception("Getting course %s failed. Stacktrace:" \
+                        LOG.exception("Getting course %s failed. Stacktrace:"
                                       % course["title"])
                         continue
                     for document in documents:
@@ -102,7 +105,8 @@ class StudDP:
                                 self.api.download_document(document, path)
                                 LOG.debug('Saved %s', path)
                             except Exception:
-                                LOG.exception("Downloading to %s failed. Stacktrace:" % path)
+                                LOG.exception("Downloading to %s failed. \
+                                              Stacktrace:" % path)
                 else:
                     LOG.debug('Skipping files for %s', title)
             self.config['last_check'] = time.time()
@@ -162,25 +166,26 @@ def _parse_args():
                       help="start as daemon. Use stopDP to end thread.")
     parser.add_option("-w", "--windows",
                       action="store_true", dest="on_windows", default=False,
-                      help="remove characters that are forbidden in windows paths")
+                      help="remove characters that are forbidden in windows paths")  # noqa e501
     parser.add_option("-u", "--update",
-                      action="store_true", dest="update_courses", default=False,
+                      action="store_true", dest="update_courses", default=False,  # noqa e501
                       help="update files when they are updated on StudIP")
     parser.add_option("-p", "--password",
-                      action="store_true", dest="update_password", default=False,
+                      action="store_true", dest="update_password", default=False,  # noqa e501
                       help="force password update")
     return parser.parse_args()
 
 
 def _load_config(config, options):
     if config['username'] == "":
-        print("No username provided. "
-              "Please configure ~/.config/studdp/config.json first")
+        print("No username provided. ",
+              "Please configure {} first".format(CONFIG_FILE))
         exit(1)
 
     password = _get_password(config['username'], options.update_password)
 
-    api = APIWrapper((config['username'], password), config["base_address"], config["local_path"])
+    api = APIWrapper((config['username'], password), config["base_address"],
+                     config["local_path"])
 
     courses = api.get_courses()
     if not config['courses_selected'] or options.regenerate:
@@ -210,13 +215,15 @@ def main():
 
     api = _load_config(config, options)
 
-    task = StudDP(config, api, options.daemonize, options.on_windows, options.update_courses)
+    task = StudDP(config, api, options.daemonize, options.on_windows,
+                  options.update_courses)
 
     if options.daemonize:
         with daemon.DaemonContext(pidfile=PidFile(PID_FILE)):
             task()
     else:
         task()
+
 
 if __name__ == "__main__":
     main()

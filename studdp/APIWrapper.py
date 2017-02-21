@@ -1,32 +1,31 @@
 import json
-import logging
 import os
 import shutil
-import signal
 import time
-import sys
 import requests
-import time
+
 
 def retryUntilCondition(condition):
-  def decorate(function):
-    def f(*args, **kwargs):
-      timeout = time.time() + 180
-      while True:
-        result = function(*args, **kwargs)
-        if condition(result):
-          return result
-        elif time.time() > timeout:
-          raise Exception("Unable to connect.")
-          return
-        elif "User may not access file" in result.text:
-          raise Exception("Unable to access location.")
-        time.sleep(0.5)
-    return f
-  return decorate
+    def decorate(function):
+        def f(*args, **kwargs):
+            timeout = time.time() + 180
+            while True:
+                result = function(*args, **kwargs)
+                if condition(result):
+                    return result
+                elif time.time() > timeout:
+                    raise Exception("Unable to connect.")
+                    return
+                elif "User may not access file" in result.text:
+                    raise Exception("Unable to access location.")
+                time.sleep(0.5)
+        return f
+    return decorate
+
 
 def responseIs200(response):
-  return response.status_code == 200
+    return response.status_code == 200
+
 
 class APIWrapper(object):
     """
@@ -46,7 +45,6 @@ class APIWrapper(object):
         """
         return "%s%s" % (self._base_address, route)
 
-
     @retryUntilCondition(responseIs200)
     def get(self, route, stream=False):
         """
@@ -55,21 +53,18 @@ class APIWrapper(object):
         """
         return requests.get(self.url(route), auth=self._auth, stream=stream)
 
-
     def get_courses(self):
         """
         Gets a list of courses.
         """
         return json.loads(self.get('/api/courses').text)["courses"]
 
-
     def get_course_folders(self, course):
         """
         Gets a list of document folders for a given course.
         """
-        return json.loads(self.get('/api/documents/%s/folder' \
-                                    % course['course_id']).text)['folders']
-
+        return json.loads(self.get('/api/documents/%s/folder'
+                                   % course['course_id']).text)['folders']
 
     def get_documents(self, course):
         """
@@ -82,7 +77,7 @@ class APIWrapper(object):
 
         while folders:
             folder = folders.pop()
-            if folder["permissions"]["readable"] == False:
+            if not folder["permissions"]["readable"]:
                 continue
             try:
                 path = '/api/documents/%s/folder/%s' \
@@ -100,14 +95,14 @@ class APIWrapper(object):
             folders += temp['folders']
         return documents
 
-
     def download_document(self, document, path):
         """
         Downloads the document to docfile.
         Will raise exceptions that have to be handled.
         """
         try:
-            file = self.get('/api/documents/%s/download' % document['document_id'], stream=True)
+            file = self.get('/api/documents/%s/download' %
+                            document['document_id'], stream=True)
             os.makedirs(document['path'], exist_ok=True)
             with open(path, 'wb') as docfile:
                 shutil.copyfileobj(file.raw, docfile)
