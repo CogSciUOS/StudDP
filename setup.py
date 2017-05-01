@@ -21,7 +21,8 @@ setup(
         "SecretStorage >= 2.3.1",
         "six >= 1.10.0",
         "python-daemon",
-        "pidfile"
+        "pidfile",
+        "pyyaml"
     ],
     url='https://github.com/shoeffner/StudDP.git',
     license='MIT',
