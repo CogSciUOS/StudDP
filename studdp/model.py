@@ -36,6 +36,7 @@ class _APIClient:
         if folder.id is None:
             try: # Workaround for courses not having normal folders
                 response = json.loads(self._get('/api/documents/%s/folder' % folder.course_id).text)
+                log.debug("Did not get valid response for course folders")
             except JSONDecodeError:
                 return []
         else:
@@ -58,16 +59,15 @@ class _APIClient:
 
     def download_document(self, document, overwrite=True):
         path = os.path.join(os.path.expanduser(c.config["base_path"]), document.path)
-        log.info("Downloading %s" % join(path, document.title))
         if not overwrite and os.path.exists(path) and not self.modified(document):
             return
+        log.info("Downloading %s" % join(path, document.title))
         file = self._get('/api/documents/%s/download' % document.id, stream=True)
         os.makedirs(path, exist_ok=True)
         with open(join(path, document.title), 'wb') as f:
             shutil.copyfileobj(file.raw, f)
 
     def get_semester_title(self, course):
-        print("foooo")
         log.debug("Getting Semester Title for %s" % course.course_id)
         semester_id = self._get("/api/courses/%s" % course.course_id).json()["course"]["semester_id"]
         return self._get("/api/semesters/%s" % semester_id).json()["semester"]["title"]

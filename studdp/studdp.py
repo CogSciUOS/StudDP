@@ -2,11 +2,13 @@ from .config import configuration as c
 from .model import APIClient
 import sys
 from os.path import expanduser, join
+import os
 import optparse
-from pidfile import PidFile
 import daemon
+from daemon.pidfile import PIDLockFile
 import time
 import logging
+from . import LOG_PATH
 
 log = logging.getLogger(__name__)
 
@@ -15,12 +17,12 @@ PID_FILE = expanduser(join('~', '.studdp', 'studdp.pid'))
 
 def _parse_args():
     parser = optparse.OptionParser()
-    parser.add_option("-s", "--select",
+    parser.add_option("-c", "--config",
                       action="store_true", dest="select", default=False,
                       help="change course selection")
-    parser.add_option("-v", "--verbose",
-                      action="store_true", dest="log_to_stdout", default=False,
-                      help="print log to stdout")
+    parser.add_option("-s", "--stop",
+                      action="store_true", dest="stop", default=False,
+                      help="stop the daemon process")
     parser.add_option("-d", "--daemonize",
                       action="store_true", dest="daemonize", default=False,
                       help="start as daemon. Use stopDP to end thread.")
@@ -37,7 +39,6 @@ class _MainLoop:
         self.overwrite = overwrite
 
     def __call__(self):
-
         while True:
             courses = APIClient.get_courses()
 
@@ -45,6 +46,7 @@ class _MainLoop:
                 if not c.is_selected(course):
                     log.info("Skipping files for %s" % course)
                     continue
+                log.info("Checking files for %s..." % course)
                 for document in course.deep_documents:
                     document.download(self.overwrite)
 
@@ -58,23 +60,24 @@ def main():
 
     (options, args) = _parse_args()
 
-    if options.log_to_stdout:
-        root_logger = logging.getLogger("studdp")
-        handler = logging.StreamHandler(sys.stdout)
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(logging.Formatter(
-            '%(name)s - %(levelname)s - %(message)s'))
-        root_logger.handlers = [handler]
-
     if options.select:
         courses = APIClient.get_courses()
         c.selection_dialog(courses)
         sys.exit(0)
 
+    if options.stop:
+        os.system("kill -2 `cat ~/.studdp/studdp.pid`")
+        sys.exit(0)
+
     task = _MainLoop(options.daemonize, options.update_courses)
 
     if options.daemonize:
-        with daemon.DaemonContext(pidfile=PidFile(PID_FILE)):
+        log.info("daemonizing...")
+        with daemon.DaemonContext(pidfile=PIDLockFile(PID_FILE)):
+            # we have to create a new logger in the daemon context
+            handler = logging.FileHandler(LOG_PATH)
+            handler.setFormatter('%(asctime)s [%(levelname)s] %(name)s: %(message)s')
+            log.addHandler(handler)
             task()
     else:
         task()

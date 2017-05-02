@@ -23,8 +23,6 @@ setup(
         "python-daemon",
         "pidfile",
         "pyyaml",
-        "pidfile",
-        "daemon"
     ],
     url='https://github.com/shoeffner/StudDP.git',
     license='MIT',
