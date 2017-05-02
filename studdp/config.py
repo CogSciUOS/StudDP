@@ -1,15 +1,18 @@
 import os
 import yaml
+import time
+from .picker import Picker
 
 CONFIG_FILE = os.path.expanduser(os.path.join("~", ".config", "studdp", 'config.yml'))
 
 DEFAULT_CONFIG = {
     "username": "",
     "base_address": "https://studip.uos.de/plugins.php/restipplugin",
-    "local_path": "~/studip",
+    "base_path": "~/studip",
     "interval": 1200,
     "last_check": -1,
-    "courses_selected": False,
+    "password": "",
+    "use_keyring": True,
     "selected_courses": [],
     "namemap": {}
 }
@@ -17,16 +20,19 @@ DEFAULT_CONFIG = {
 FILE_NOT_FOUND_TEXT = "Config file was not found under $HOME/.config/studdp/confyg.yaml. Default file has been created.\
                        Please configure the file before restarting the script."
 
-class Conf:
+
+class _Conf:
     def __init__(self):
         self.config = None
         self.load_config()
-        self.namemap = self.get_namemap(self.config["namemap"])
-        self.base_address = self.config["base_address"]
 
     @property
     def auth(self):
         return self.config["username"], self.config["password"]
+
+    def update_time(self):
+        self.config["last_check"] = time.time()
+        self.save_config()
 
     def load_config(self):
         if not os.path.exists(CONFIG_FILE):
@@ -43,20 +49,28 @@ class Conf:
             else:
                 yaml.dump(self.config, f, default_flow_style=False)
 
-    def get_namemap(self, *args, **kwargs):
-        class NameMap:
-            def __init__(iself, config):
-                iself.map = config
+    def namemap_lookup(self, node_id):
+        try:
+            return self.config["namemap"][node_id]
+        except KeyError:
+            return None
 
-            def lookup(iself, node_id):
-                try:
-                    return iself.map[node_id]
-                except KeyError:
-                    return None
+    def namemap_set(self, node_id, name):
+        self.config["namemap"][node_id] = name
+        self.save_config()
 
-            def set(iself, node_id, name):
-                iself.map[node_id] = name
-                self.save_config()
-        return NameMap(*args, **kwargs)
+    def selection_dialog(self, courses):
+        selected = list(filter(lambda x: x.course_id in self.config["selected_courses"], courses))
+        selection = Picker(
+            title="Select courses to download",
+            options=courses,
+            checked=selected).getSelected()
+        if selection:
+            self.config["selected_courses"] = list(map(lambda x: x.course_id, selection))
+            self.save_config()
 
-configuration = Conf()
+    def is_selected(self, course):
+        return course.course_id in  self.config["selected_courses"]
+
+
+configuration = _Conf()
