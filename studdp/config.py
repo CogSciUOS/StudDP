@@ -60,17 +60,17 @@ class _Conf:
         self.save_config()
 
     def selection_dialog(self, courses):
-        selected = list(filter(lambda x: x.course_id in self.config["selected_courses"], courses))
+        selected = list(filter(lambda x: x.course.id in self.config["selected_courses"], courses))
         selection = Picker(
             title="Select courses to download",
             options=courses,
             checked=selected).getSelected()
         if selection:
-            self.config["selected_courses"] = list(map(lambda x: x.course_id, selection))
+            self.config["selected_courses"] = list(map(lambda x: x.course.id, selection))
             self.save_config()
 
     def is_selected(self, course):
-        return course.course_id in  self.config["selected_courses"]
+        return course.course.id in self.config["selected_courses"]
 
 
 configuration = _Conf()
