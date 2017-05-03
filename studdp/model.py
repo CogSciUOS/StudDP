@@ -41,6 +41,7 @@ class _APIClient:
                 return []
         else:
             response = json.loads(self._get('/api/documents/%s/folder/%s' % (folder.course_id, folder.id)).text)
+            log.debug("Got response: %s" % response)
 
         documents = list(map(lambda x: Document.from_response(x, folder.path, folder.course_id),
                              response["documents"]))
@@ -59,7 +60,7 @@ class _APIClient:
 
     def download_document(self, document, overwrite=True):
         path = os.path.join(os.path.expanduser(c.config["base_path"]), document.path)
-        if not overwrite and os.path.exists(path) and not self.modified(document):
+        if not overwrite and os.path.exists(join(path, document.title)) and not self.modified(document):
             return
         log.info("Downloading %s" % join(path, document.title))
         file = self._get('/api/documents/%s/download' % document.id, stream=True)
