@@ -12,12 +12,15 @@ logging.config.dictConfig({
         'standard': {
             'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
         },
+        'minimal': {
+            'format': '[%(levelname)s]: %(message)s'
+        }
     },
     'handlers': {
         'default': {
             'level': 'INFO',
             'class': 'logging.StreamHandler',
-            'formatter': 'standard'
+            'formatter': 'minimal'
         },
         'file_handler': {
             'level': 'DEBUG',

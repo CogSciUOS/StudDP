@@ -36,8 +36,8 @@ class _APIClient:
         if folder.id is None:
             try: # Workaround for courses not having normal folders
                 response = json.loads(self._get('/api/documents/%s/folder' % folder.course_id).text)
-                log.debug("Did not get valid response for course folders")
             except JSONDecodeError:
+                log.error('Getting files for %s failed' % folder)
                 return []
         else:
             response = json.loads(self._get('/api/documents/%s/folder/%s' % (folder.course_id, folder.id)).text)

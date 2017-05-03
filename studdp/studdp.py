@@ -44,13 +44,14 @@ class _MainLoop:
 
             for course in courses:
                 if not c.is_selected(course):
-                    log.info("Skipping files for %s" % course)
+                    log.debug("Skipping files for %s" % course)
                     continue
                 log.info("Checking files for %s..." % course)
                 for document in course.deep_documents:
                     document.download(self.overwrite)
 
             c.update_time()
+            log.info("Finished checking.")
             if not self.daemonize:
                 return
             time.sleep(c.config["interval"])
