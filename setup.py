@@ -32,8 +32,7 @@ setup(
     zip_safe=False,
     entry_points={
         "console_scripts": [
-            "studdp = studdp.StudDP:main",
-            "stopdp = studdp.stopDP:stop",
+            "studdp = studdp.studdp:main"
         ],
     },
 )
