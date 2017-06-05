@@ -4,32 +4,67 @@ loads and manages configuration for studdp. By default a configuration file at $
 import logging
 import time
 import os
-import yaml
+import ruamel.yaml as yaml
 import keyring
 import getpass
 from .picker import Picker
+import sys
 
 
 log = logging.getLogger(__name__)
 
 CONFIG_FILE = os.path.expanduser(os.path.join("~", ".config", "studdp", 'config.yml'))
 
-DEFAULT_CONFIG = {
-    "username": "",
-    "base_address": "https://studip.uos.de/plugins.php/restipplugin",
-    "base_path": "~/studip",
-    "interval": 1200,
-    "last_check": -1,
-    "password": "",
-    "use_keyring": True,
-    "selected_courses": [],
-    "namemap": {}
-}
+DEFAULT_CONFIG = """\
+######################################################
+####################    Studdp    ####################
+######################################################
+
+# The base address of your universities stud.ip deployment. Change this if you don't study in Osnabrueck
+base_address: 'https://studip.uos.de/plugins.php/restipplugin'
+
+# The path to use as the root of the studdp downloads. The program will rebuild the course-structure of stud.ip under this root.
+base_path: '~/studip'
+
+# How often to check in seconds. This option is only respected when run as a daemon.
+interval: 1200
+
+# Your stud.ip username
+username: 'ChangeMe!'
+
+# Your stud.ip username is either stored in your keyring or read from this file if use_keyring is set to false.
+use_keyring: true
+password: 'optional' # only respected if use_keyring is false
+
+# Your selected courses. You should not change this directly but rather use studdp -c to configure them
+selected_courses:
+  - '_course_id'
+
+# All stud.ip nodes found here will be renamed as desired. By default one entry is created for every course in order to
+# include the semester in the name. This works the same way for folders and documents. The ids can for example be
+# easily found on studip using a browser.
+namemap:
+  '_course': '_title' # this is the format you should use. isn't yaml beautiful?
+
+# Time of last check. You should normally not touch this
+last_check: 0
+"""
 
 FILE_NOT_FOUND_TEXT = "Config file was not found under $HOME/.config/studdp/confyg.yaml. Default file has been created.\
                        Please configure the file before restarting the script."
 
-class _Conf:
+# we are going to make the config class a Singleton
+class Singleton(type):
+    _instances = {}
+
+    def __call__(cls, *args, **kwargs):
+        if cls not in cls._instances:
+            cls._instances[cls] = super(
+                Singleton, cls).__call__(*args, **kwargs)
+        return cls._instances[cls]
+
+
+class Config(metaclass=Singleton):
     """
     Class for managing configuration. Should not be instantiated manullay. Rather use the instance provided as part of this module.
     """
@@ -37,7 +72,7 @@ class _Conf:
         self._settings = None
         self.load()
 
-    # Overwrite some dict methods in order to allow comfortable accessing
+    # Emulate dict methods to allow key based access
     def __getitem__(self, item):
         return self._settings[item]
 
@@ -47,6 +82,18 @@ class _Conf:
     def __delitem__(self, key):
         del self._settings[key]
 
+    def __len__(self):
+        return len(self._settings)
+
+    def items(self):
+        return self._settings.items()
+
+    def keys(self):
+        return self._settings.keys()
+
+    def values(self):
+        return self._settings.values()
+
     @property
     def auth(self):
         """
@@ -54,6 +101,10 @@ class _Conf:
         configuration file.
         """
         username = self._settings["username"]
+
+        if not username:
+            raise ValueError("Username was not configured in %s" % CONFIG_FILE)
+
         if self._settings["use_keyring"]:
             password = self.keyring_get_password(username)
             if not password:
@@ -62,7 +113,7 @@ class _Conf:
         else:
             password = self._settings["password"]
 
-        return self._settings["username"], self._settings["password"]
+        return self._settings["username"], password
 
     def keyring_get_password(self, username):
         """
@@ -89,10 +140,11 @@ class _Conf:
         """
         if not os.path.exists(file):
             print("Config file was not found under %s. Default file has been created" % CONFIG_FILE)
-            self._settings = DEFAULT_CONFIG
+            self._settings = yaml.load(DEFAULT_CONFIG, yaml.RoundTripLoader)
             self.save(file)
+            sys.exit()
         with open(file, 'r') as f:
-            self._settings = yaml.load(f)
+            self._settings = yaml.load(f, yaml.RoundTripLoader)
 
     def save(self, file=CONFIG_FILE):
         """
@@ -100,7 +152,7 @@ class _Conf:
         """
         os.makedirs(os.path.dirname(file), exist_ok=True)
         with open(file, "w") as f:
-            yaml.dump(self._settings, f, default_flow_style=False)
+            yaml.dump(self._settings, f, Dumper=yaml.RoundTripDumper, width=float("inf"))
 
     def namemap_lookup(self, node_id):
         """
@@ -137,4 +189,6 @@ class _Conf:
         """
         return course.course.id in self._settings["selected_courses"]
 
-configuration = _Conf()
+    def selection(self):
+        return self._settings["selected_courses"]
+

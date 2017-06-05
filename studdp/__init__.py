@@ -2,9 +2,11 @@ import logging.config
 from logging import NullHandler
 from os.path import expanduser, join, dirname
 from os import makedirs
+
 logging.getLogger(__name__).addHandler(NullHandler())
 LOG_PATH = expanduser(join('~', '.studdp', 'studdp.log'))
 makedirs(dirname(LOG_PATH), exist_ok=True)
+
 logging.config.dictConfig({
     'version': 1,
     'disable_existing_loggers': False,

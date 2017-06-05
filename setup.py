@@ -4,7 +4,7 @@ from setuptools import setup
 
 setup(
     name='StudDP',
-    version='1.1.94',
+    version='2.0.0',
     author='Sebastian Höffner',
     author_email='shoeffner@uos.de',
     maintainer='Maxim Schuwalow',
@@ -23,9 +23,9 @@ setup(
         "six >= 1.10.0",
         "python-daemon",
         "pidfile",
-        "pyyaml",
         "memorised",
-        "werkzeug"
+        "werkzeug",
+        "ruamel.yaml"
     ],
     url='https://github.com/shoeffner/StudDP.git',
     license='MIT',

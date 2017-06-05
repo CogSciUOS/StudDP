@@ -23,9 +23,9 @@ import shutil
 import requests as r
 from memorised.decorators import memorise
 from werkzeug.utils import secure_filename
+from .config import Config
 
-from .config import configuration as c
-
+c = Config()
 log = logging.getLogger(__name__)
 
 
