@@ -30,37 +30,39 @@ as:
 
 .. code:: sh
 
-    python -m studdp.StudDP
-    python -m studdp.stopDP
+    python -m studdp.studdp
 
-Modify the config.json:
+Modify the config.yml:
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-.. code:: json
+# The base address of your universities stud.ip deployment. Change this if you don't study in Osnabrueck
+base_address: 'https://studip.uos.de/plugins.php/restipplugin'
 
-    {
-        "username": "",
-        "base_address": "https://studip.uos.de/plugins.php/restipplugin",
-        "local_path": "~/studip",
-        "interval": 1200,
-        "last_check": -1,
-        "courses_selected": false,
-        "courses": []
-    }
+# The path to use as the root of the studdp downloads. The program will rebuild the course-structure of stud.ip under this root.
+base_path: '~/studip'
 
--  ``username`` is your StudIP login name.
--  ``base_address`` is the addres up to the root of your Rest.IP plugin.
-   Leave out any trailing slashes.
--  ``local_path`` is your local folder where files should be downloaded
-   to.
--  ``interval`` is the checking interval in seconds (so the default is
-   20 minutes).
--  ``last_check`` is the last timestamp when checks were performed. This
-   is set automatically.
--  ``courses_selected`` tells the program if you have chosen your
-   courses. This is set automatically.
--  ``courses`` is your list of courses to download. This is set
-   automatically.
+# How often to check in seconds. This option is only respected when run as a daemon.
+interval: 1200
+
+# Your stud.ip username
+username: 'ChangeMe!'
+
+# Your stud.ip username is either stored in your keyring or read from this file if use_keyring is set to false.
+use_keyring: true
+password: 'optional' # only respected if use_keyring is false
+
+# Your selected courses. You should not change this directly but rather use studdp -c to configure them
+selected_courses:
+- '_course_id'
+
+# All stud.ip nodes found here will be renamed as desired. By default one entry is created for every course in order to
+# include the semester in the name. This works the same way for folders and documents. The ids can for example be
+# easily found on studip using a browser.
+namemap:
+'_course': '_title' # this is the format you should use. isn't yaml beautiful?
+
+# Time of last check. You should normally not touch this
+last_check: 0
 
 Run
 ---
@@ -69,36 +71,40 @@ When running for the first time, use:
 
 .. code:: sh
 
-    StudDP.py
+    studdp
 
 To get information about options, use:
 
 .. code:: sh
 
-    StudDP.py -h
+    Usage: studdp [options]
 
-        Usage: StudDP.py [options]
+    Options:
+    -h, --help       show this help message and exit
+    -c, --config     change course selection
+    -s, --stop       stop the daemon process
+    -d, --daemonize  start as daemon. Use studdp -s to stop daemon.
+    -f, --force      overwrite local changes
+    --password       change the password entry in the keyring
 
-        Options:
-          -h, --help       show this help message and exit
-          -c, --config     change course selection
-          -v, --verbose    print log to stdout
-          -d, --daemonize  start as daemon
-          -w, --windows    remove characters that are forbidden in windows paths
-          -u, --update     update files when they are updated on StudIP
-          -p, --password   force password update
 
 When running it for the first time, it should prompt you for your StudIP
-password. It will then be stored in your login keyring. You therefore
-have to have a keyring installed.
+password. It will then be stored in your login keyring. This of course
+requires a keyring like the gnome keyring installed. If you prefer your
+password saved in cleartext in some config file, you can set use_keyring
+to false in the config and provide your password there.
 
-You will then see a ncurses interface which allows you to select the
-courses to download:
+Select courses
+___
+
+By default studdp will download all courses you are subscribed to to the folder
+defined in base_path. You can limit this selection using studdp -c which will bring
+up a ncurses interface to configure your course selection.
 
 .. figure:: https://cdn.rawgit.com/shoeffner/StudDP/develop/screenshots/courses.png
    :alt: 
 
-You can later use the -p and -c options to reconfigure your password and
+You can later use the --password and -c options to reconfigure your password and
 courses respectively.
 
 Running as a daemon
@@ -108,13 +114,13 @@ To run it as a daemon, use:
 
 .. code:: sh
 
-    StudDP.py -d
+    studdp -d
 
 To stop it the daemon, use:
 
 .. code:: sh
 
-    stopDP
+    studdp -s
 
 Other information
 -----------------
@@ -131,3 +137,7 @@ To uninstall use:
 
     rm -rf StudDP
     rm -rf ~/.studdp
+
+or if installed via pip:
+.. code:: sh
+    pip uninstall StudDP
