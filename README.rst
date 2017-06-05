@@ -33,8 +33,10 @@ as:
     python -m studdp.studdp
 
 Modify the config.yml:
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+
 .. code:: sh
+
     # The base address of your universities stud.ip deployment. Change this if you don't study in Osnabrueck
     base_address: 'https://studip.uos.de/plugins.php/restipplugin'
 
@@ -94,8 +96,8 @@ requires a keyring like the gnome keyring installed. If you prefer your
 password saved in cleartext in some config file, you can set use_keyring
 to false in the config and provide your password there.
 
-Select courses
-___
+Select Courses
+~~~~~~~~~~~~~~
 
 By default studdp will download all courses you are subscribed to to the folder
 defined in base_path. You can limit this selection using studdp -c which will bring
@@ -139,5 +141,7 @@ To uninstall use:
     rm -rf ~/.studdp
 
 or if installed via pip:
+
 .. code:: sh
+
     pip uninstall StudDP
