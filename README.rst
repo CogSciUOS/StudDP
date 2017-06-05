@@ -34,35 +34,35 @@ as:
 
 Modify the config.yml:
 ~~~~~~~~~~~~~~~~~~~~~~~
+.. code:: sh
+    # The base address of your universities stud.ip deployment. Change this if you don't study in Osnabrueck
+    base_address: 'https://studip.uos.de/plugins.php/restipplugin'
 
-# The base address of your universities stud.ip deployment. Change this if you don't study in Osnabrueck
-base_address: 'https://studip.uos.de/plugins.php/restipplugin'
+    # The path to use as the root of the studdp downloads. The program will rebuild the course-structure of stud.ip under this root.
+    base_path: '~/studip'
 
-# The path to use as the root of the studdp downloads. The program will rebuild the course-structure of stud.ip under this root.
-base_path: '~/studip'
+    # How often to check in seconds. This option is only respected when run as a daemon.
+    interval: 1200
 
-# How often to check in seconds. This option is only respected when run as a daemon.
-interval: 1200
+    # Your stud.ip username
+    username: 'ChangeMe!'
 
-# Your stud.ip username
-username: 'ChangeMe!'
+    # Your stud.ip username is either stored in your keyring or read from this file if use_keyring is set to false.
+    use_keyring: true
+    password: 'optional' # only respected if use_keyring is false
 
-# Your stud.ip username is either stored in your keyring or read from this file if use_keyring is set to false.
-use_keyring: true
-password: 'optional' # only respected if use_keyring is false
+    # Your selected courses. You should not change this directly but rather use studdp -c to configure them
+    selected_courses:
+    - '_course_id'
 
-# Your selected courses. You should not change this directly but rather use studdp -c to configure them
-selected_courses:
-- '_course_id'
+    # All stud.ip nodes found here will be renamed as desired. By default one entry is created for every course in order to
+    # include the semester in the name. This works the same way for folders and documents. The ids can for example be
+    # easily found on studip using a browser.
+    namemap:
+    '_course': '_title' # this is the format you should use. isn't yaml beautiful?
 
-# All stud.ip nodes found here will be renamed as desired. By default one entry is created for every course in order to
-# include the semester in the name. This works the same way for folders and documents. The ids can for example be
-# easily found on studip using a browser.
-namemap:
-'_course': '_title' # this is the format you should use. isn't yaml beautiful?
-
-# Time of last check. You should normally not touch this
-last_check: 0
+    # Time of last check. You should normally not touch this
+    last_check: 0
 
 Run
 ---
