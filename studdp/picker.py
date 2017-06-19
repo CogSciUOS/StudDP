@@ -76,7 +76,7 @@ class Picker:
             return( False )
 
         ret_s = [x for x in self.all_options if x["selected"]]
-        ret = [x["label"] for x in ret_s]
+        ret = [x["item"] for x in ret_s]
         return(ret)
 
     def redraw(self):
@@ -151,8 +151,6 @@ class Picker:
                 self.cursor = self.cursor - 1
             elif c == curses.KEY_DOWN:
                 self.cursor = self.cursor + 1
-            #elif c == curses.KEY_PPAGE:
-            #elif c == curses.KEY_NPAGE:
             elif c == ord(' '):
                 self.all_options[self.selected]["selected"] = \
                     not self.all_options[self.selected]["selected"]
@@ -184,13 +182,14 @@ class Picker:
 
         for option in options:
             self.all_options.append({
-                "label": option,
-                "selected": True if (option in checked) else False
+                "label": str(option),
+                "selected": True if (option in checked) else False,
+                "item": option
             })
             self.length = len(self.all_options)
 
         self.curses_start()
 
         signal.signal(signal.SIGWINCH, self.sigwinch_handler)
-        curses.wrapper( self.curses_loop )
+        curses.wrapper(self.curses_loop)
         self.curses_stop()

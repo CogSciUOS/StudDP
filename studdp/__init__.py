@@ -1,14 +1,43 @@
-import os
+import logging.config
+from logging import NullHandler
+from os.path import expanduser, join, dirname
+from os import makedirs
 
-DEFAULT_CONFIG = {
-    "username": "",
-    "base_address": "https://studip.uos.de/plugins.php/restipplugin",
-    "local_path": "~/studip",
-    "interval": 1200,
-    "last_check": -1,
-    "courses_selected": False,
-    "selected_courses": []
-}
+logging.getLogger(__name__).addHandler(NullHandler())
+LOG_PATH = expanduser(join('~', '.studdp', 'studdp.log'))
+makedirs(dirname(LOG_PATH), exist_ok=True)
 
-CONFIG_FILE = os.path.expanduser(
-    os.path.join("~", ".config", "studdp", 'config.json'))
+logging.config.dictConfig({
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'standard': {
+            'format': '%(asctime)s [%(levelname)s] %(name)s: %(message)s'
+        },
+        'minimal': {
+            'format': '[%(levelname)s]: %(message)s'
+        }
+    },
+    'handlers': {
+        'default': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'minimal'
+        },
+        'file_handler': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'formatter': 'standard',
+            'filename': LOG_PATH
+        }
+    },
+    'loggers': {
+        '': {
+            'handlers': ['default', 'file_handler'],
+            'level': 'DEBUG',
+            'propagate': True
+        }
+    }
+})
+
+logging.info("Logging initialized")
